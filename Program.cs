@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CliqueProblemWithWirthGraph
 {
@@ -13,14 +14,25 @@ namespace CliqueProblemWithWirthGraph
             var graphData = string.Join("", args);
             if (graphData.EndsWith(';'))
                 graphData = graphData.Remove(graphData.Length - 1);
+#if DEBUG
+            var edges = GenerateEdges();
+            Console.WriteLine("Edges generated, looking for cliques...");
+#else
             var edges = ValidateAndReturnEdges(graphData);
+#endif
             if (edges.Count == 0)
             {
                 HelpMe();
                 return;
             }
             var graph = new Graph<string>(edges.ToArray());
+#if DEBUG
+            // todo: program goes in seemingly endless loop,
+            //  it's true for any configuration of graph
+            var cliques = graph.FindCliquesOfSize(10);
+#else
             var cliques = graph.FindAllCliques();
+#endif
             if (cliques.Count == 0) Console.WriteLine("No Cliques found!");
             else
             {
@@ -33,6 +45,45 @@ namespace CliqueProblemWithWirthGraph
                 }
             }
         }
+
+#if DEBUG
+        private static IList<(string, string)> GenerateEdges()
+        {
+            var r = new Random();
+            var startStr1 = "bbcfhswfcgbwevhfjw";
+            var startStr2 = "huiwhfiwjhfbcwrueihbfcvw";
+            var result = new HashSet<(string, string)> { (startStr1, startStr2) };
+            var defined = new HashSet<string> { startStr1, startStr2 };
+            for (int i = 0; i < 10_000; ++i)
+            {
+                var connectExisting = r.Next(0, 2) == 1;
+                if (connectExisting)
+                {
+                    var n1 = defined.ElementAt(r.Next(0, defined.Count));
+                    var n2 = defined.ElementAt(r.Next(0, defined.Count));
+                    result.Add((n1, n2));
+                }
+                else
+                {
+                    var n1 = defined.ElementAt(r.Next(0, defined.Count));
+                    var n2 = GenStr(r, r.Next(5, 30));
+                    defined.Add(n2);
+                    result.Add((n1, n2));
+                }
+            }
+            return result.ToList();
+        }
+
+        private static string GenStr(Random r, int len)
+        {
+            if (len <= 0) return "";
+            var alphabet = "abcdefghijklmnopqrstuvwxyz";
+            var sb = new StringBuilder(len);
+            for (int i = 0; i < len; ++i)
+                sb.Append(alphabet[r.Next(0, alphabet.Length)]);
+            return sb.ToString();
+        }
+#endif
 
         private static IList<(string, string)> ValidateAndReturnEdges(string graphData)
         {
